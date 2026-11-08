@@ -28,6 +28,13 @@ Packaging of Agent Bridge 2.0.0 for a two-way Claude Code ⇄ Codex connection.
 - MCP server ignores every `notifications/*` message instead of replying.
 - MCP stdio uses UTF-8 on Windows, so non-ASCII task text is not corrupted.
 - The bundled offline wheel (`bootstrap/`) is rebuilt from the current source.
+- `install.sh` and the other shell scripts are executable again, so
+  `./install.sh` no longer fails with "Permission denied".
+- Python 3.9 on Windows: a relative `AGENT_BRIDGE_HOME` is now made absolute.
+- Tests: run with `discover -s tests -t .`, because `tests/platform` hid the
+  standard `platform` module on macOS and Linux; the wheel rebuild test
+  needs setuptools 77+ (the build now requires it); the Windows CI job
+  installs the built wheel correctly under PowerShell.
   The upstream wheel no longer matched it.
 - `.gitattributes` keeps LF line endings on every platform, so shell scripts
   run and the wheel's source hashes match on Windows checkouts.

@@ -9,7 +9,7 @@ runtime. Before changing behavior, add a focused failing `unittest`, then make
 it pass. Run:
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -t . -v
 python -m compileall -q src scripts tests
 git diff --check
 ```

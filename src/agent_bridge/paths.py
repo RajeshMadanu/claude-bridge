@@ -16,4 +16,6 @@ def require_local_data_root(path: Path) -> Path:
     raw_path = str(path)
     if os.name == "nt" and raw_path.replace("/", "\\").startswith("\\\\"):
         raise ValueError("Agent Bridge data root must be on a local filesystem")
-    return path.expanduser().resolve()
+    # absolute() first: on Python 3.9 for Windows, resolve() leaves a
+    # relative path that does not exist yet relative.
+    return path.expanduser().absolute().resolve()

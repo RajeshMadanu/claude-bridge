@@ -562,7 +562,7 @@ class DocumentationTests(unittest.TestCase):
             "failed",
             "input_required",
             "changes_requested",
-            "python -m unittest discover -s tests -v",
+            "python -m unittest discover -s tests -t . -v",
             "macOS",
         ):
             self.assertIn(token, combined)

@@ -7,6 +7,19 @@ import sys
 import unittest
 import zipfile
 
+
+def _setuptools_supports_spdx_license() -> bool:
+    """pyproject.toml uses an SPDX license string, which needs setuptools 77+."""
+    if importlib.util.find_spec("setuptools") is None:
+        return False
+    from importlib.metadata import version
+
+    try:
+        major = int(version("setuptools").split(".")[0])
+    except Exception:
+        return False
+    return major >= 77
+
 from tests.support import ROOT
 
 
@@ -29,7 +42,7 @@ class BootstrapWheelTests(unittest.TestCase):
             ):
                 self.assertIn(resource, archive.namelist())
 
-    @unittest.skipUnless(importlib.util.find_spec("setuptools"), "requires a local wheel build backend")
+    @unittest.skipUnless(_setuptools_supports_spdx_license(), "requires setuptools 77+ as a local wheel build backend")
     def test_rebuilding_bootstrap_wheel_is_byte_reproducible_when_backend_is_available(self) -> None:
         first = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "bootstrap_wheel.py"), "--write"],

@@ -88,7 +88,7 @@ bridge uninstall --purge-data
 ## 测试与发布
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -t . -v
 python -m compileall -q src scripts tests
 python -m build
 ```

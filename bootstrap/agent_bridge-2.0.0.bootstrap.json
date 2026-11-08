@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sha256": "bb291411791da0da34f4887034dde82b89245ebb67933dc3e87f5dee6e5d6bf9",
+  "sha256": "80d2115c54de24c5eeeefda37e1023221c2af63c30406067efda7b17af4d97cd",
   "source_inventory": {
     "agent_bridge/__init__.py": "09e3f62095eb8e180e92e8e5908761ff9ea76707c5548a871bb9d1f8c00c1793",
     "agent_bridge/adapters/__init__.py": "df451039315a94ee2601de7cdc6ef6d256d3d821f1304106ea714a7c4fb97e7d",
@@ -41,7 +41,7 @@
     "agent_bridge/notifications.py": "71ce5f52cc1b5207ac07726ff4e506a864ad2f7e6974f4660414ceb5cc49e50d",
     "agent_bridge/outbox.py": "652ca574915d0657b634acc8eff51ebdcfc7521703995eb0778aa202248993cd",
     "agent_bridge/path_ownership.py": "07128be7d073caf3bb62360b681e6ea9b1a64df9c854d44c851721a8c8d683f7",
-    "agent_bridge/paths.py": "b4a5853d46a5c784313342c776f628760080c11b62f4485eef6fe0f5ecd60fc2",
+    "agent_bridge/paths.py": "b5932e8914fcba72463b1984a7bd42bee552f786653d90e1ba57408b6cd92d57",
     "agent_bridge/permissions.py": "d526936855f6bb4e0715f1e4874d89cba4a4d455e73794d1d72a12c04d1339ee",
     "agent_bridge/presentation.py": "a80292cb57e230f0ef83093d4f1fbd9d7397cb3825647b9c641c140efb3dd3d3",
     "agent_bridge/service.py": "23f00fdbe96b1fce483815528cb2ab9c9631d776491f9c9947c31be9c67efda5",

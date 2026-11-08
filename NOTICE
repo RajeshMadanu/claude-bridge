@@ -19,6 +19,13 @@ Changes made in this repository (see CHANGELOG.md, "claude-bridge" entries):
   with CREATE_NO_WINDOW on Windows, so a send no longer opens console windows.
 - src/agent_bridge/setup.py: Windows toast clicks run pythonw.exe (no console
   window) when it is available.
+- src/agent_bridge/paths.py: relative data roots are made absolute on
+  Python 3.9 for Windows.
+- pyproject.toml, tests/test_bootstrap_wheel.py: the build requires
+  setuptools 77+, which the SPDX license field needs.
+- .github/workflows/ci.yml, CONTRIBUTING.md: tests run with
+  `discover -s tests -t .`; the Windows job installs the built wheel under
+  PowerShell; shell scripts are marked executable.
 - scripts/connect_claude_mcp.py (new), install.ps1, install.sh: register and
   unregister the Claude Code MCP server with `claude mcp`, which upstream
   setup did not do.

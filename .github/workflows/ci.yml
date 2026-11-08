@@ -24,7 +24,7 @@ jobs:
       - run: python -m pip install --upgrade pip build
       - run: python -m pip install .
       - run: python scripts/bootstrap_wheel.py --check
-      - run: python -m unittest discover -s tests -v
+      - run: python -m unittest discover -s tests -t . -v
       - run: python -m compileall -q src scripts tests
       - name: Build distributions
         run: python -m build
@@ -51,7 +51,7 @@ jobs:
           python -m pip install --upgrade pip build
           python scripts/bootstrap_wheel.py --check
           python -m build
-          python -m pip install --force-reinstall --no-deps dist/*.whl
+          python -m pip install --force-reinstall --no-deps (Get-ChildItem dist/*.whl).FullName
       - name: Locked Rust release build and size gate
         shell: pwsh
         run: |

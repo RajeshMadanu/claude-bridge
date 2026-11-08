@@ -300,7 +300,7 @@ Code ⇄ Codex pair. See the original project for the others.
 ## Development
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -t . -v
 python -m compileall -q src scripts tests
 python scripts/bootstrap_wheel.py --check     # the bundled wheel matches src/
 python scripts/bootstrap_wheel.py --write     # rebuild it after changing src/ (needs setuptools)
