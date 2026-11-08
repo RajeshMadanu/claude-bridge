@@ -34,6 +34,8 @@ class MacOSNotifyProtocolTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def helper(self, source: str) -> Path:
+        if os.name != "nt":
+            self.skipTest("the fake helper is a Windows .cmd script")
         path = self.directory / "helper.cmd"
         encoded = base64.b64encode(source.encode("utf-8")).decode("ascii")
         command = "import base64;exec(base64.b64decode('" + encoded + "'))"
