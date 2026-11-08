@@ -50,6 +50,7 @@ def _secure_windows_acl(path: Path, user_grant: str, system_grant: str) -> None:
         errors="replace",
         shell=False,
         timeout=15,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0,
     )
     if result.returncode != 0:
         raise RuntimeError("failed to restrict Agent Bridge data ACL: " + result.stderr.strip())

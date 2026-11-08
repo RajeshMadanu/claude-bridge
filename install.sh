@@ -76,6 +76,10 @@ if [ "$uninstall" -eq 1 ]; then
     runtime_program='import sys; sys.path.insert(0, sys.argv[1]); from agent_bridge.cli import main; raise SystemExit(main(sys.argv[2:]))'
     bridge_args=(-c "$runtime_program" "$owned_runtime")
   fi
+  connect_script="$source_root/scripts/connect_claude_mcp.py"
+  if [ "$install_root" = "$HOME" ] && [ "${AGENT_BRIDGE_SKIP_CLAUDE_MCP:-}" != "1" ] && { [ -z "$agent" ] || [ "$agent" = "claude" ]; } && [ -f "$connect_script" ] && command -v claude >/dev/null 2>&1; then
+    "$python_path" -I "$connect_script" --remove || true
+  fi
   bridge_args+=(uninstall --home "$install_root")
   if [ -n "$agent" ]; then bridge_args+=(--agent "$agent"); fi
   if [ "$purge_data" -eq 1 ]; then bridge_args+=(--purge-data); fi
@@ -136,4 +140,17 @@ if [ -n "$identity" ] || [ -n "$wake_cmd" ]; then
   echo "--as and --wake-cmd are legacy options; setup uses local host scope only." >&2
 fi
 "$python_path" "${bridge_args[@]}"
+
+# Claude Code exposes the bridge_* tools only after its MCP server is
+# registered with `claude mcp`; setup itself writes only the SessionStart hook.
+claude_receipt="$install_root/.agent-bridge/host-integrations/claude.json"
+connect_script="$source_root/scripts/connect_claude_mcp.py"
+# Only for the current user's own home: `claude mcp` writes that user's config.
+if [ "$install_root" = "$HOME" ] && [ "${AGENT_BRIDGE_SKIP_CLAUDE_MCP:-}" != "1" ] && { [ -z "$agent" ] || [ "$agent" = "claude" ]; } && [ -f "$claude_receipt" ] && [ -f "$connect_script" ]; then
+  if command -v claude >/dev/null 2>&1; then
+    "$python_path" -I "$connect_script" --home "$install_root" || echo "WARNING: Claude Code MCP registration failed. Run: python3 scripts/connect_claude_mcp.py" >&2
+  else
+    echo "WARNING: Claude Code CLI not found on PATH. After installing it, run: python3 scripts/connect_claude_mcp.py" >&2
+  fi
+fi
 printf '%s\n' "OK agent-bridge lifecycle completed"

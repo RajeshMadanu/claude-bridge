@@ -1,0 +1,36 @@
+Claude Bridge
+=============
+
+This repository is a modified distribution of Agent Bridge.
+
+Agent Bridge
+Copyright 2026 圆规 (Yuangui) — https://github.com/xyva-yuangui/agent-bridge
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Changes made in this repository (see CHANGELOG.md, "claude-bridge" entries):
+
+- src/agent_bridge/adapters/integration.py: added the `bridge_send` MCP tool,
+  so each host can start tasks for the other host under its fixed identity;
+  tool results now use the MCP CallToolResult shape, and tool errors are
+  returned as readable results; every JSON-RPC notification is ignored
+  without a reply; MCP stdio is forced to UTF-8 on Windows.
+- src/agent_bridge/notifications.py, src/agent_bridge/permissions.py:
+  helper processes (toast helper, PowerShell signing check, icacls) start
+  with CREATE_NO_WINDOW on Windows, so a send no longer opens console windows.
+- src/agent_bridge/setup.py: Windows toast clicks run pythonw.exe (no console
+  window) when it is available.
+- scripts/connect_claude_mcp.py (new), install.ps1, install.sh: register and
+  unregister the Claude Code MCP server with `claude mcp`, which upstream
+  setup did not do.
+- bootstrap/: offline wheel and metadata rebuilt from the current source.
+- tests/unit/test_mcp_consumer.py, tests/test_installers.py,
+  tests/platform/test_windows_launcher_args.py (new): tests for the above.
+- tests/support.py, tests/integration/test_cli_v2.py,
+  tests/integration/test_mcp_v2.py, tests/test_mcp.py: temporary folders retry
+  cleanup while the detached dispatcher still holds the database on Windows.
+- scripts/build_portable_zip.py, MANIFEST.in: ship NOTICE, the Claude MCP
+  helper and the instruction snippets.
+- integrations/instructions/ (new): CLAUDE.md and AGENTS.md instruction
+  snippets for the Claude Code ⇄ Codex workflow.
+- README.md, NOTICE, CHANGELOG.md, .gitattributes: documentation and line
+  ending rules for this distribution.

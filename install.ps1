@@ -56,6 +56,11 @@ if ($Uninstall) {
         $runtimeProgram = "import sys; sys.path.insert(0, sys.argv[1]); from agent_bridge.cli import main; raise SystemExit(main(sys.argv[2:]))"
         $bridgeArgs = @("-c", $runtimeProgram, $ownedRuntime)
     }
+    $connectScript = Join-Path $sourceRoot "scripts\connect_claude_mcp.py"
+    $ownHome = $env:USERPROFILE -and ([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\') -ieq $userRoot.TrimEnd('\'))
+    if ($ownHome -and $env:AGENT_BRIDGE_SKIP_CLAUDE_MCP -ne "1" -and (-not $Agent -or $Agent -eq "claude") -and (Test-Path -LiteralPath $connectScript) -and (Get-Command claude -ErrorAction SilentlyContinue)) {
+        & $pythonPath -I $connectScript --remove
+    }
     $bridgeArgs += "uninstall", "--home", $userRoot
     if ($Agent) { $bridgeArgs += "--agent", $Agent }
     if ($PurgeData) { $bridgeArgs += "--purge-data" }
@@ -107,4 +112,19 @@ if (-not $Auto -and -not $Agent) { $bridgeArgs += "--auto" }
 if ($As -or $WakeArgv) { Write-Verbose "-As and -WakeArgv are legacy options; setup uses local host scope only." }
 & $pythonPath @bridgeArgs
 if ($LASTEXITCODE -ne 0) { throw "agent-bridge setup command failed." }
+
+# Claude Code exposes the bridge_* tools only after its MCP server is
+# registered with `claude mcp`; setup itself writes only the SessionStart hook.
+$claudeReceipt = Join-Path $userRoot ".agent-bridge\host-integrations\claude.json"
+$connectScript = Join-Path $sourceRoot "scripts\connect_claude_mcp.py"
+# Only for the current user's own home: `claude mcp` writes that user's config.
+$ownHome = $env:USERPROFILE -and ([IO.Path]::GetFullPath($env:USERPROFILE).TrimEnd('\') -ieq $userRoot.TrimEnd('\'))
+if ($ownHome -and $env:AGENT_BRIDGE_SKIP_CLAUDE_MCP -ne "1" -and (-not $Agent -or $Agent -eq "claude") -and (Test-Path -LiteralPath $claudeReceipt) -and (Test-Path -LiteralPath $connectScript)) {
+    if (Get-Command claude -ErrorAction SilentlyContinue) {
+        & $pythonPath -I $connectScript --home $userRoot
+        if ($LASTEXITCODE -ne 0) { Write-Warning "Claude Code MCP registration failed. Run: python scripts\connect_claude_mcp.py" }
+    } else {
+        Write-Warning "Claude Code CLI not found on PATH. After installing it, run: python scripts\connect_claude_mcp.py"
+    }
+}
 Write-Output "OK agent-bridge lifecycle completed"

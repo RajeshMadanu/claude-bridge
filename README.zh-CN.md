@@ -14,6 +14,8 @@ Agent Bridge 为 Codex、Claude Code、Reasonix 和 ZCode 提供同一份本地�
 
 作者：**圆规** · [@xyva-yuangui](https://github.com/xyva-yuangui)
 
+> **Claude Bridge：** 本仓库是 Agent Bridge 的修改版发行包，专门用于 Claude Code ⇄ Codex 双向连接。安装步骤、Claude Code MCP 注册和代理指令见英文 [README](README.md)；修改内容见 [NOTICE](NOTICE)。
+
 [许可证](LICENSE)（Apache-2.0） · [安全报告](SECURITY.md) · [贡献指南](CONTRIBUTING.md) · [架构](docs/architecture/v2.md) · [Windows 安装](docs/installation/windows.md) · [macOS 安装](docs/installation/macos.md) · [v1 迁移](docs/installation/migration-v1.md) · [发布清单](docs/release/checklist.md)
 
 ## 环境与支持范围

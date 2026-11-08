@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from tests.integration.test_cli_v2 import REQUIRED_COMMANDS
-from tests.support import MCP_PATH
+from tests.support import MCP_PATH, BridgeTemporaryDirectory
 
 
 EXCLUDED_MCP_COMMANDS = {"dispatch", "tui", "setup", "uninstall", "open-action"}
@@ -31,7 +31,7 @@ class McpV2Tests(unittest.TestCase):
         return [json.loads(line) for line in result.stdout.splitlines() if line]
 
     def test_tools_match_noninteractive_cli_and_execute_workflow(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             responses = self.exchange(home, [
                 {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
@@ -60,7 +60,7 @@ class McpV2Tests(unittest.TestCase):
         self.assertNotIn("IndexError", result.stderr)
 
     def test_mcp_validates_malformed_requests_and_continues(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             responses = self.exchange(Path(directory), [
                 [],
                 3,
@@ -71,7 +71,7 @@ class McpV2Tests(unittest.TestCase):
         self.assertIn("codex", responses[3]["result"]["content"][0]["text"])
 
     def test_mcp_advertises_and_enforces_tool_schemas(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             responses = self.exchange(Path(directory), [
                 {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}},
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "bridge_send", "arguments": {"subject": "Missing target"}}},
@@ -84,7 +84,7 @@ class McpV2Tests(unittest.TestCase):
         self.assertEqual(responses[1]["error"]["code"], -32602)
 
     def test_mcp_project_init_default_and_wake_unavailable(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             responses = self.exchange(Path(directory), [
                 {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "bridge_project", "arguments": {"action": "init", "name": "current"}}},
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "bridge_wake", "arguments": {"agent": "zcode"}}},
@@ -93,7 +93,7 @@ class McpV2Tests(unittest.TestCase):
         self.assertTrue(responses[1]["result"]["isError"])
 
     def test_mcp_done_matches_cli_optional_result_and_parse_errors_continue(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             created = self.exchange(home, [
                 {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "bridge_send", "arguments": {"to": "zcode", "subject": "Optional"}}},
@@ -119,7 +119,7 @@ class McpV2Tests(unittest.TestCase):
         self.assertIn("codex", responses[1]["result"]["content"][0]["text"])
 
     def test_tool_actor_cannot_override_the_bound_mcp_identity(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             created = self.exchange(home, [
                 {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "bridge_send", "arguments": {"to": "zcode", "subject": "Bound identity"}}},

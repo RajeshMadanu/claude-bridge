@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+from ..cli import execute_command
+from ..presentation import error_view
 from ..service import BridgeService
 from ..store import Store
 from . import adapter_for
@@ -18,7 +20,7 @@ from .base import TaskAcknowledgement
 # host-specific private protocol.  Cards remain an optional presentation
 # surface; lifecycle actions always bind to this process's fixed host identity.
 TOOLS = (
-    "bridge_inbox", "bridge_show", "bridge_ack", "bridge_claim",
+    "bridge_inbox", "bridge_show", "bridge_send", "bridge_ack", "bridge_claim",
     "bridge_question", "bridge_answer", "bridge_review", "bridge_done",
 )
 
@@ -38,6 +40,7 @@ def _schema(properties: Dict[str, Dict[str, Any]], required=()) -> Dict[str, Any
 TOOL_SCHEMAS = {
     "bridge_inbox": _schema({"limit": _INTEGER}),
     "bridge_show": _schema({"task_id": _STRING}, ("task_id",)),
+    "bridge_send": _schema({"to": _STRING, "subject": _STRING, "body": _STRING, "project": _STRING}, ("to", "subject")),
     "bridge_ack": _schema({
         "task_id": _STRING,
         "integration_version": _STRING,
@@ -91,10 +94,51 @@ def _validate_tool(name: Any, arguments: Any) -> Dict[str, Any]:
     return dict(arguments)
 
 
+def _tool_result(value: Dict[str, Any], is_error: bool = False) -> Dict[str, Any]:
+    """Wrap a tool outcome in the MCP CallToolResult shape clients require."""
+    text = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return {"content": [{"type": "text", "text": text}], "isError": is_error}
+
+
 def _task_payload(task: Any) -> Dict[str, Any]:
     value = dict(task.__dict__)
     value["state"] = task.state.value
     return value
+
+
+def _call_tool(adapter: Any, service: BridgeService, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    """Run one validated tool as this process's fixed host identity."""
+    task_id = str(arguments.get("task_id", ""))
+    body = str(arguments.get("body", ""))
+    if name == "bridge_inbox":
+        page = service.inbox(adapter.name, int(arguments.get("limit", 100)))
+        return {"tasks": [_task_payload(task) for task in page.tasks], "next_cursor": page.next_cursor}
+    if name == "bridge_send":
+        return execute_command(service, adapter.name, "send", arguments)
+    if name == "bridge_ack":
+        acknowledgement = TaskAcknowledgement(adapter.name, task_id, str(arguments.get("integration_version", "")), arguments.get("protocol_version"), str(arguments.get("delivery_token", "")))
+        prepared = adapter.integration_acknowledgement(task_id)
+        if acknowledgement != prepared:
+            raise ValueError("acknowledgement does not match queued task card")
+        service.acknowledge_integration(task_id, adapter.name, prepared.integration_version, prepared.protocol_version, prepared.delivery_token)
+        adapter.consume_acknowledged_card(task_id, prepared.delivery_token)
+        return {"acknowledged": True}
+    if name == "bridge_show":
+        task = service.show(task_id)
+    elif name == "bridge_claim":
+        task = service.claim(task_id, adapter.name, body)
+    elif name == "bridge_question":
+        task = service.question(task_id, adapter.name, body)
+    elif name == "bridge_answer":
+        task = service.answer(task_id, adapter.name, body)
+    elif name == "bridge_review":
+        verdict = arguments.get("verdict")
+        task = service.request_review(task_id, adapter.name, body) if verdict is None else service.review(task_id, adapter.name, str(verdict), body)
+    elif name == "bridge_done":
+        task = service.done(task_id, adapter.name, str(arguments.get("result", "")))
+    else:
+        raise ValueError("unknown tool")
+    return {"task": _task_payload(task)}
 
 
 def serve(host: str, home: Path, data_root: Path) -> int:
@@ -125,7 +169,8 @@ def serve(host: str, home: Path, data_root: Path) -> int:
                         "serverInfo": {"name": "agent-bridge-host-consumer", "version": "2.0.0"},
                         "capabilities": {"tools": {}},
                     })
-                elif method == "notifications/initialized":
+                elif isinstance(method, str) and method.startswith("notifications/"):
+                    # JSON-RPC notifications never receive a response.
                     continue
                 elif method == "ping":
                     _response(request_id, {})
@@ -141,40 +186,12 @@ def serve(host: str, home: Path, data_root: Path) -> int:
                 elif method == "tools/call":
                     name = params.get("name")
                     arguments = _validate_tool(name, params.get("arguments", {}))
-                    if name == "bridge_inbox":
-                        page = service.inbox(adapter.name, int(arguments.get("limit", 100)))
-                        _response(request_id, {"tasks": [_task_payload(task) for task in page.tasks], "next_cursor": page.next_cursor})
-                    elif name == "bridge_show":
-                        task = service.show(str(arguments.get("task_id", "")))
-                        _response(request_id, {"task": _task_payload(task)})
-                    elif name == "bridge_ack":
-                        task_id = str(arguments.get("task_id", ""))
-                        acknowledgement = TaskAcknowledgement(adapter.name, task_id, str(arguments.get("integration_version", "")), arguments.get("protocol_version"), str(arguments.get("delivery_token", "")))
-                        prepared = adapter.integration_acknowledgement(task_id)
-                        if acknowledgement != prepared:
-                            raise ValueError("acknowledgement does not match queued task card")
-                        service.acknowledge_integration(task_id, adapter.name, prepared.integration_version, prepared.protocol_version, prepared.delivery_token)
-                        adapter.consume_acknowledged_card(task_id, prepared.delivery_token)
-                        _response(request_id, {"acknowledged": True})
-                    elif name == "bridge_claim":
-                        task = service.claim(str(arguments.get("task_id", "")), adapter.name, str(arguments.get("body", "")))
-                        _response(request_id, {"task": _task_payload(task)})
-                    elif name == "bridge_question":
-                        task = service.question(str(arguments.get("task_id", "")), adapter.name, str(arguments.get("body", "")))
-                        _response(request_id, {"task": _task_payload(task)})
-                    elif name == "bridge_answer":
-                        task = service.answer(str(arguments.get("task_id", "")), adapter.name, str(arguments.get("body", "")))
-                        _response(request_id, {"task": _task_payload(task)})
-                    elif name == "bridge_review":
-                        task_id = str(arguments.get("task_id", ""))
-                        verdict = arguments.get("verdict")
-                        task = service.request_review(task_id, adapter.name, str(arguments.get("body", ""))) if verdict is None else service.review(task_id, adapter.name, str(verdict), str(arguments.get("body", "")))
-                        _response(request_id, {"task": _task_payload(task)})
-                    elif name == "bridge_done":
-                        task = service.done(str(arguments.get("task_id", "")), adapter.name, str(arguments.get("result", "")))
-                        _response(request_id, {"task": _task_payload(task)})
-                    else:
-                        raise ValueError("unknown tool")
+                    # A protocol error means the call never ran.  Failures while
+                    # running a tool are results, so the model can read them.
+                    try:
+                        _response(request_id, _tool_result(_call_tool(adapter, service, str(name), arguments)))
+                    except (KeyError, PermissionError, RuntimeError, TypeError, ValueError) as error:
+                        _response(request_id, _tool_result(error_view(error), True))
                 else:
                     _response(request_id, error="unknown method")
             except json.JSONDecodeError:
@@ -294,6 +311,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     hook_parser.add_argument("--data-root", required=True)
     parsed = parser.parse_args(argv)
     if parsed.command == "serve":
+        # MCP stdio is UTF-8; a Windows legacy code page would corrupt task text.
+        for stream in (sys.stdin, sys.stdout):
+            stream.reconfigure(encoding="utf-8")
         return serve(parsed.host, Path(parsed.home), Path(parsed.data_root))
     if parsed.command == "--health":
         adapter = adapter_for(parsed.host, Path(parsed.home))

@@ -2,6 +2,36 @@
 
 All notable changes to agent-bridge will be documented in this file.
 
+## [claude-bridge 2.0.0-cb1] — 2026-11-08
+
+Packaging of Agent Bridge 2.0.0 for a two-way Claude Code ⇄ Codex connection.
+
+### Added
+- `bridge_send` MCP tool: either host can send tasks and replies to the other,
+  always under its own fixed identity.
+- `scripts/connect_claude_mcp.py`: registers the `agent_bridge` MCP server in
+  Claude Code (`claude mcp add -s user`). The installers run it automatically
+  for the current user's own home, and remove the registration on uninstall.
+  Set `AGENT_BRIDGE_SKIP_CLAUDE_MCP=1` to skip it.
+- `integrations/instructions/CLAUDE.md` and `AGENTS.md`: instructions that
+  tell each agent how to check, claim, reply and close tasks using only the
+  MCP tools.
+- Test for multi-line Unicode task exchange between Codex and Claude, and
+  regression tests documenting the Windows `bridge.cmd` multi-line limit.
+
+### Fixed
+- Windows: sending a task no longer opens console windows. The toast helper,
+  the PowerShell signing check and `icacls` now start with `CREATE_NO_WINDOW`,
+  and toast clicks use `pythonw.exe`.
+- MCP tool results now use the `CallToolResult` shape that MCP clients require,
+  and tool failures come back as readable error results.
+- MCP server ignores every `notifications/*` message instead of replying.
+- MCP stdio uses UTF-8 on Windows, so non-ASCII task text is not corrupted.
+- The bundled offline wheel (`bootstrap/`) is rebuilt from the current source.
+  The upstream wheel no longer matched it.
+- `.gitattributes` keeps LF line endings on every platform, so shell scripts
+  run and the wheel's source hashes match on Windows checkouts.
+
 ## [2.0.0] — 2026-07-24
 
 ### Major rewrite

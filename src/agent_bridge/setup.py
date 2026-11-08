@@ -33,6 +33,13 @@ from .path_ownership import (
 from .permissions import secure_directory, secure_file
 
 
+
+def _windowless_python() -> str:
+    """Interpreter for toast clicks: pythonw.exe opens no console window."""
+    candidate = Path(sys.executable).with_name("pythonw.exe")
+    return str(candidate) if os.name == "nt" and candidate.is_file() else sys.executable
+
+
 def _home(value: Optional[Path]) -> Path:
     # Canonicalize the user root once.  In particular, a Windows 8.3 spelling
     # and its long spelling must identify the same owned runtime receipt.
@@ -425,7 +432,7 @@ def _install_windows_native(home: Path) -> None:
             os.replace(stage, helper)
         elif not helper.is_file():
             raise RuntimeError("Windows notifier release helper is missing")
-        activation = [sys.executable, str(_data_root(home) / "skill" / "scripts" / "bridge.py"), "--as", "notification-action", "--data-root", str(_data_root(home))]
+        activation = [_windowless_python(), str(_data_root(home) / "skill" / "scripts" / "bridge.py"), "--as", "notification-action", "--data-root", str(_data_root(home))]
         _write_owned_json(receipt, {
             "schema": 1,
             "owner": "agent-bridge.windows-notify",

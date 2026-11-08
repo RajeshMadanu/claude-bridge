@@ -17,6 +17,12 @@ from .outbox import utc_now
 from .store import Store
 
 
+# Windows opens a new console window for a console program started from a
+# process without one (the detached dispatcher), which steals the user's focus
+# on every send.  Every helper the bridge runs is headless, so hide it.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+
+
 MAX_JSON_BYTES = 16 * 1024
 DEFAULT_MAX_OUTPUT_BYTES = 16 * 1024
 DEFAULT_TIMEOUT_SECONDS = 2.0
@@ -85,6 +91,7 @@ def windows_signing_assessment(helper_path: Path | str) -> str:
             timeout=5.0,
             check=False,
             shell=False,
+            creationflags=_NO_WINDOW,
         )
     except (OSError, subprocess.SubprocessError):
         return "unknown"
@@ -278,7 +285,7 @@ def _run_capped_helper(
     path: Path, payload: bytes, timeout: float, limit: int, arguments: Sequence[str] = ()
 ) -> tuple[int, bytes, bytes, str]:
     """Drain both pipes concurrently; overflow and timeout always kill and join."""
-    process = subprocess.Popen([str(path), *arguments], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+    process = subprocess.Popen([str(path), *arguments], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False, creationflags=_NO_WINDOW)
     streams = [bytearray(), bytearray()]
     overflow = threading.Event()
     def drain(index: int, pipe: Any) -> None:

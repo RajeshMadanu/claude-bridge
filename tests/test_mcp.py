@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tests.support import MCP_PATH, write_agent
+from tests.support import MCP_PATH, write_agent, BridgeTemporaryDirectory
 
 
 class McpParityTests(unittest.TestCase):
@@ -32,7 +32,7 @@ class McpParityTests(unittest.TestCase):
         return [json.loads(line) for line in completed.stdout.splitlines() if line]
 
     def test_mcp_exposes_every_cli_workflow_and_matching_version(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with BridgeTemporaryDirectory() as tmp:
             home = Path(tmp)
             write_agent(home, "codex")
             responses = self.exchange(

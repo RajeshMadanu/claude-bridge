@@ -15,7 +15,7 @@ from agent_bridge.models import TaskState
 from agent_bridge.cli import execute_command
 from agent_bridge.service import BridgeService
 from agent_bridge.store import Store
-from tests.support import BRIDGE_PATH
+from tests.support import BRIDGE_PATH, BridgeTemporaryDirectory
 
 
 REQUIRED_COMMANDS = {
@@ -39,7 +39,7 @@ def run_module(module: str, *arguments: str, home: Optional[Path] = None):
 
 class CliV2Tests(unittest.TestCase):
     def test_explicit_data_root_does_not_depend_on_ambient_home(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             base = Path(directory)
             explicit = base / "explicit"
             ambient = base / "ambient"
@@ -77,7 +77,7 @@ class CliV2Tests(unittest.TestCase):
     def test_tui_command_runs_the_on_demand_controller(self):
         from agent_bridge import cli
 
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             store = Store.open(Path(directory) / "agent-bridge.sqlite3")
             service = BridgeService(store)
             try:
@@ -91,7 +91,7 @@ class CliV2Tests(unittest.TestCase):
                 store.close()
 
     def test_json_workflow_uses_service_views(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             sent = run_module(
                 "agent_bridge.cli", "--as", "codex", "--json", "send", "--to", "zcode",
@@ -115,7 +115,7 @@ class CliV2Tests(unittest.TestCase):
 
     def test_migrate_and_export_call_v2_store_functions(self):
         fixture = Path(__file__).parents[1] / "fixtures" / "v1"
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             migrated = run_module(
                 "agent_bridge.cli", "--json", "migrate", str(fixture), home=home,
@@ -137,7 +137,7 @@ class CliV2Tests(unittest.TestCase):
         self.assertEqual(documented, {state.value for state in TaskState})
 
     def test_project_init_defaults_to_the_current_working_directory(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             result = run_module(
                 "agent_bridge.cli", "--json", "project", "init", "--name", "current", home=Path(directory),
             )
@@ -145,7 +145,7 @@ class CliV2Tests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["project"]["path"], str(Path.cwd().resolve()))
 
     def test_done_files_round_trip_and_clean_removes_delivery_intents(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             sent = run_module(
                 "agent_bridge.cli", "--as", "codex", "--json", "send", "--to", "zcode", "--subject", "Files", home=home,
@@ -168,7 +168,7 @@ class CliV2Tests(unittest.TestCase):
                 connection.close()
 
     def test_wake_uses_the_locally_configured_safe_launcher(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             store = Store.open(Path(directory) / "agent-bridge.sqlite3")
             service = BridgeService(store)
             workspace = Path(directory) / "workspace"
@@ -190,7 +190,7 @@ class CliV2Tests(unittest.TestCase):
         self.assertFalse(popen.call_args.kwargs["shell"])
 
     def test_doctor_strict_reports_schema_version_failures(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             store = Store.open(Path(directory) / "agent-bridge.sqlite3")
             service = BridgeService(store)
             try:
@@ -209,7 +209,7 @@ class CliV2Tests(unittest.TestCase):
                 self.assertNotIn(obsolete, content)
 
     def test_done_result_is_optional_and_activity_since_is_validated(self):
-        with tempfile.TemporaryDirectory() as directory:
+        with BridgeTemporaryDirectory() as directory:
             home = Path(directory)
             sent = run_module(
                 "agent_bridge.cli", "--as", "codex", "--json", "send", "--to", "zcode", "--subject", "Optional", home=home,

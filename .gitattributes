@@ -1,0 +1,6 @@
+# Keep LF everywhere, including Windows checkouts. The offline wheel metadata
+# hashes source files byte-for-byte, and bash scripts break with CRLF.
+* text=auto eol=lf
+*.whl binary
+*.exe binary
+*.png binary

@@ -48,8 +48,11 @@ def payload_for(
 ) -> dict[str, bytes]:
     prefix = "agent-bridge-{}/".format(version)
     payload: dict[str, bytes] = {}
-    for name in ("install.ps1", "install.sh", "LICENSE", "README.md", "README.zh-CN.md"):
+    for name in ("install.ps1", "install.sh", "LICENSE", "NOTICE", "README.md", "README.zh-CN.md"):
         _add_file(payload, prefix + name, source_root / name)
+    # The installers run this after setup to register Claude Code's MCP server.
+    _add_file(payload, prefix + "scripts/connect_claude_mcp.py", source_root / "scripts" / "connect_claude_mcp.py")
+    _add_tree(payload, prefix + "integrations/instructions/", source_root / "integrations" / "instructions", {".md"})
     for name in ("windows.md", "macos.md", "migration-v1.md"):
         _add_file(payload, prefix + "docs/installation/" + name, source_root / "docs" / "installation" / name)
     # The release pipeline rebuilds this wheel after the Windows helper has

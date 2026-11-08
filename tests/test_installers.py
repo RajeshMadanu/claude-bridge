@@ -23,6 +23,11 @@ POSIX_INSTALLER = ROOT / "install.sh"
 WINDOWS_NOTIFY = ROOT / "scripts" / "notify_windows.ps1"
 
 
+
+def windowless_python() -> Path:
+    candidate = Path(sys.executable).with_name("pythonw.exe")
+    return candidate if candidate.is_file() else Path(sys.executable)
+
 class InstallerContractTests(unittest.TestCase):
     def test_windows_installer_is_a_safe_setup_bootstrap(self):
         source = WINDOWS_INSTALLER.read_text(encoding="utf-8")
@@ -194,7 +199,8 @@ class WindowsInstallerRuntimeTests(unittest.TestCase):
                 activation_argv[2:],
                 ["--as", "notification-action", "--data-root", activation_argv[5]],
             )
-            self.assertTrue(os.path.samefile(activation_argv[0], sys.executable))
+            # Toast clicks use the windowless interpreter next to sys.executable.
+            self.assertTrue(os.path.samefile(activation_argv[0], windowless_python()))
             self.assertTrue(
                 os.path.samefile(activation_argv[1], skill / "scripts" / "bridge.py")
             )
@@ -223,7 +229,8 @@ class WindowsInstallerRuntimeTests(unittest.TestCase):
                         "AgentBridgeActivationArgvJson",
                     )[0]
                 )
-            self.assertTrue(os.path.samefile(activation_argv[0], sys.executable))
+            # Toast clicks use the windowless interpreter next to sys.executable.
+            self.assertTrue(os.path.samefile(activation_argv[0], windowless_python()))
             self.assertTrue(
                 os.path.samefile(
                     activation_argv[1],

@@ -3,8 +3,11 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
+import time
 import uuid
 from pathlib import Path
 
@@ -13,6 +16,37 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
 BRIDGE_PATH = SCRIPTS / "bridge.py"
 MCP_PATH = SCRIPTS / "bridge_mcp.py"
+
+
+class BridgeTemporaryDirectory:
+    """A TemporaryDirectory that tolerates the bridge's detached dispatcher.
+
+    Every send starts a detached dispatcher that may still hold the SQLite
+    database open for a moment after the command returns.  Windows refuses to
+    delete an open file, so cleanup retries briefly instead of failing a test
+    that already passed.
+    """
+
+    def __init__(self, timeout: float = 15.0) -> None:
+        self.name = tempfile.mkdtemp()
+        self.timeout = timeout
+
+    def __enter__(self) -> str:
+        return self.name
+
+    def __exit__(self, *exc_info) -> None:
+        deadline = time.monotonic() + self.timeout
+        while True:
+            try:
+                shutil.rmtree(self.name)
+                return
+            except FileNotFoundError:
+                return
+            except PermissionError:
+                if time.monotonic() >= deadline:
+                    shutil.rmtree(self.name, ignore_errors=True)
+                    return
+                time.sleep(0.2)
 
 
 def load_bridge():
